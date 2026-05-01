@@ -8,6 +8,8 @@ const state = {
   pageSize: 10,
   hasMore: false,
   pageCount: null,
+  items: [],
+  detail: null,
 };
 
 function applyTheme(theme) {
@@ -132,7 +134,7 @@ function txCardPaid(tx) {
   const sub = [tx.balanceHistoryType, tx.paymentMethod].filter(Boolean).join(" · ");
   const status = tx.status ? `<span class="badge ${escapeHtml(tx.status)}">${escapeHtml(tx.status)}</span>` : "";
   return `
-    <div class="tx">
+    <div class="tx clickable" data-id="${escapeHtml(tx.id || "")}">
       <div>
         <div class="name">${escapeHtml(name)}</div>
         <div class="meta">${escapeHtml(sub)}</div>
@@ -185,7 +187,7 @@ function txCardUnpaid(tx) {
     ? `<a href="${escapeHtml(tx.paymentUrl)}" target="_blank" rel="noopener noreferrer">Open payment ↗</a>`
     : "";
   return `
-    <div class="tx">
+    <div class="tx clickable" data-id="${escapeHtml(tx.id || "")}">
       <div>
         <div class="name">${escapeHtml(name)}</div>
         <div class="meta">${escapeHtml(sub)}</div>
@@ -213,6 +215,7 @@ const EMPTY_LABEL = {
 function renderTransactions(payload) {
   const list = $("txList");
   const items = (payload && payload.data) || [];
+  state.items = items;
   if (!items.length) {
     list.innerHTML = `<div class="empty">${EMPTY_LABEL[state.tab] || "No items."}</div>`;
   } else {
@@ -271,6 +274,111 @@ async function refreshAll() {
   await Promise.all([loadBalance(), loadTransactions()]);
 }
 
+function kvRow(label, value, opts = {}) {
+  if (value === null || value === undefined || value === "") return "";
+  const cls = ["v"];
+  if (opts.mono) cls.push("mono");
+  return `<div class="k">${escapeHtml(label)}</div><div class="${cls.join(" ")}">${opts.html ? value : escapeHtml(value)}</div>`;
+}
+
+function copyButton(value, label) {
+  if (!value) return "";
+  return `<button class="copy-btn" data-copy="${escapeHtml(value)}" data-label="${escapeHtml(label)}"><span class="icon">⧉</span> Copy</button>`;
+}
+
+function renderPaidDetail(tx) {
+  const name = tx.customer?.name || tx.customer?.email || "Unknown";
+  const status = tx.status
+    ? `<span class="badge ${escapeHtml(tx.status)}">${escapeHtml(tx.status)}</span>`
+    : "";
+  return `
+    <div class="detail-card">
+      <div class="detail-title">${escapeHtml(name)}</div>
+      <div class="meta">${escapeHtml([tx.balanceHistoryType, tx.paymentMethod].filter(Boolean).join(" · "))}</div>
+      <div class="detail-amount credit">${idr(tx.credit)}</div>
+      <div class="kv">
+        ${status ? `<div class="k">Status</div><div class="v">${status}</div>` : ""}
+        ${kvRow("Type", tx.balanceHistoryType)}
+        ${kvRow("Payment", tx.paymentMethod)}
+        ${kvRow("Created", fmtDate(tx.createdAt))}
+      </div>
+    </div>
+    <div class="detail-card">
+      <div class="kv">
+        ${kvRow("Customer", tx.customer?.name)}
+        ${kvRow("Email", tx.customer?.email)}
+        ${kvRow("Mobile", tx.customer?.mobile)}
+        ${tx.customer?.id ? `<div class="k">Customer ID</div><div class="v mono">${escapeHtml(tx.customer.id)} ${copyButton(tx.customer.id, "Customer ID")}</div>` : ""}
+      </div>
+    </div>
+    <div class="detail-card">
+      <div class="kv">
+        ${tx.id ? `<div class="k">Transaction ID</div><div class="v mono">${escapeHtml(tx.id)} ${copyButton(tx.id, "Transaction ID")}</div>` : ""}
+      </div>
+    </div>`;
+}
+
+function renderUnpaidDetail(tx) {
+  const name = tx.customer?.name || tx.customer?.email || "Unknown";
+  const status = tx.status
+    ? `<span class="badge ${escapeHtml(tx.status)}">${escapeHtml(tx.status)}</span>`
+    : "";
+  const paymentLink = tx.paymentUrl
+    ? `<a href="${escapeHtml(tx.paymentUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(tx.paymentUrl)}</a> ${copyButton(tx.paymentUrl, "Payment link")}`
+    : "";
+  return `
+    <div class="detail-card">
+      <div class="detail-title">${escapeHtml(name)}</div>
+      <div class="meta">${escapeHtml(tx.type || "")}</div>
+      <div class="detail-amount unpaid">${idr(tx.amount)}</div>
+      <div class="kv">
+        ${status ? `<div class="k">Status</div><div class="v">${status}</div>` : ""}
+        ${kvRow("Type", tx.type)}
+        ${kvRow("Created", fmtDate(tx.createdAt))}
+      </div>
+    </div>
+    <div class="detail-card">
+      <div class="kv">
+        ${kvRow("Customer", tx.customer?.name)}
+        ${kvRow("Email", tx.customer?.email)}
+        ${kvRow("Mobile", tx.customer?.mobile)}
+        ${tx.customer?.id ? `<div class="k">Customer ID</div><div class="v mono">${escapeHtml(tx.customer.id)} ${copyButton(tx.customer.id, "Customer ID")}</div>` : ""}
+      </div>
+    </div>
+    ${paymentLink ? `<div class="detail-card"><div class="kv"><div class="k">Payment URL</div><div class="v">${paymentLink}</div></div></div>` : ""}
+    <div class="detail-card">
+      <div class="kv">
+        ${tx.id ? `<div class="k">Transaction ID</div><div class="v mono">${escapeHtml(tx.id)} ${copyButton(tx.id, "Transaction ID")}</div>` : ""}
+      </div>
+    </div>`;
+}
+
+const DETAIL_RENDERERS = {
+  paid: renderPaidDetail,
+  unpaid: renderUnpaidDetail,
+};
+
+function showDetail(tab, item) {
+  const render = DETAIL_RENDERERS[tab];
+  if (!render) return;
+  state.detail = { tab, item };
+  $("detailBody").innerHTML = render(item);
+  $("detailView").classList.remove("hidden");
+  $("balanceCard").classList.add("hidden");
+  document.querySelector("nav.tabs").classList.add("hidden");
+  $("txList").classList.add("hidden");
+  document.querySelector(".pager").classList.add("hidden");
+}
+
+function hideDetail() {
+  state.detail = null;
+  $("detailView").classList.add("hidden");
+  $("balanceCard").classList.remove("hidden");
+  document.querySelector("nav.tabs").classList.remove("hidden");
+  $("txList").classList.remove("hidden");
+  document.querySelector(".pager").classList.remove("hidden");
+}
+
 let toastTimer = null;
 function showToast(msg) {
   const el = $("copyToast");
@@ -302,6 +410,21 @@ function bindEvents() {
 
   $("txList").addEventListener("click", (e) => {
     const btn = e.target.closest(".copy-btn");
+    if (btn && !btn.disabled) {
+      handleCopyClick(btn);
+      return;
+    }
+    if (e.target.closest("a")) return;
+    const card = e.target.closest(".tx.clickable");
+    if (!card) return;
+    const id = card.dataset.id;
+    const item = state.items.find((it) => it.id === id);
+    if (item) showDetail(state.tab, item);
+  });
+
+  $("detailBackBtn").addEventListener("click", hideDetail);
+  $("detailView").addEventListener("click", (e) => {
+    const btn = e.target.closest(".copy-btn");
     if (btn && !btn.disabled) handleCopyClick(btn);
   });
 
@@ -312,6 +435,7 @@ function bindEvents() {
       document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b === btn));
       state.tab = next;
       state.page = 1;
+      if (state.detail) hideDetail();
       loadTransactions();
     });
   });
