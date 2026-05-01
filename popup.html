@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Mayar</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <img class="logo" src="icons/icon48.png" alt="Mayar" />
+        <div class="brand-name">Mayar</div>
+      </div>
+      <div class="actions">
+        <button id="refreshBtn" class="icon-btn" title="Refresh" aria-label="Refresh">↻</button>
+        <button id="settingsBtn" class="icon-btn" title="Settings" aria-label="Settings">⚙</button>
+      </div>
+    </header>
+
+    <main>
+      <section id="settingsPanel" class="panel hidden">
+        <h2>Settings</h2>
+        <label class="field">
+          <span>API Key</span>
+          <input id="apiKeyInput" type="password" autocomplete="off" placeholder="Paste your Mayar API key" />
+          <small class="help">
+            Ambil API key dari dashboard Mayar pada halaman
+            <a href="https://web.mayar.id/integration/apikey" target="_blank" rel="noopener noreferrer"><strong>Integrasi &rsaquo; Api Keys &amp; Token</strong></a>,
+            lalu salin dan tempel ke kolom di atas.
+          </small>
+        </label>
+        <div class="row gap">
+          <button id="saveSettingsBtn" class="primary">Save</button>
+          <button id="cancelSettingsBtn">Cancel</button>
+        </div>
+        <p class="hint">Stored locally in <code>chrome.storage.local</code> on this device only.</p>
+      </section>
+
+      <section id="balanceCard" class="card balance">
+        <div class="balance-label">Total Balance</div>
+        <div id="balanceTotal" class="balance-total">—</div>
+        <div class="balance-split">
+          <div>
+            <div class="muted">Active</div>
+            <div id="balanceActive" class="strong">—</div>
+          </div>
+          <div>
+            <div class="muted">Pending</div>
+            <div id="balancePending" class="strong">—</div>
+          </div>
+        </div>
+      </section>
+
+      <nav class="tabs" role="tablist">
+        <button class="tab active" data-tab="paid" role="tab">Paid</button>
+        <button class="tab" data-tab="unpaid" role="tab">Unpaid</button>
+      </nav>
+
+      <section id="txList" class="list" aria-live="polite"></section>
+
+      <div class="pager">
+        <button id="prevBtn" disabled>‹ Prev</button>
+        <div id="pageInfo" class="muted">—</div>
+        <button id="nextBtn" disabled>Next ›</button>
+      </div>
+
+      <div id="status" class="status"></div>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
