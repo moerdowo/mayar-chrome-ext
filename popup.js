@@ -2,12 +2,19 @@ const API_BASE = "https://api.mayar.id";
 
 const state = {
   apiKey: "",
+  theme: "dark",
   tab: "paid",
   page: 1,
   pageSize: 10,
   hasMore: false,
   pageCount: null,
 };
+
+function applyTheme(theme) {
+  const t = theme === "light" ? "light" : "dark";
+  document.documentElement.dataset.theme = t;
+  state.theme = t;
+}
 
 const $ = (id) => document.getElementById(id);
 
@@ -41,14 +48,20 @@ const escapeHtml = (s) =>
   }[c]));
 
 async function loadSettings() {
-  const { mayarApiKey = "" } = await chrome.storage.local.get(["mayarApiKey"]);
+  const { mayarApiKey = "", mayarTheme = "dark" } = await chrome.storage.local.get([
+    "mayarApiKey",
+    "mayarTheme",
+  ]);
   state.apiKey = mayarApiKey;
+  applyTheme(mayarTheme);
 }
 
 async function saveSettings() {
   const apiKey = $("apiKeyInput").value.trim();
-  await chrome.storage.local.set({ mayarApiKey: apiKey });
+  const theme = $("themeSelect").value;
+  await chrome.storage.local.set({ mayarApiKey: apiKey, mayarTheme: theme });
   state.apiKey = apiKey;
+  applyTheme(theme);
   toggleSettings(false);
   refreshAll();
 }
@@ -57,6 +70,7 @@ function toggleSettings(show) {
   const panel = $("settingsPanel");
   if (show) {
     $("apiKeyInput").value = state.apiKey;
+    $("themeSelect").value = state.theme;
     panel.classList.remove("hidden");
   } else {
     panel.classList.add("hidden");
@@ -131,6 +145,38 @@ function txCardPaid(tx) {
     </div>`;
 }
 
+function productCard(p) {
+  const name = p.name || "Untitled";
+  const sub = [p.type, p.status].filter(Boolean).join(" · ");
+  const productUrl = p.linkUrl || "";
+  const checkoutUrl = p.linkPayment || "";
+  const status = p.status
+    ? `<span class="badge ${escapeHtml(p.status)}">${escapeHtml(p.status)}</span>`
+    : "";
+  const priceLabel = p.type === "membership" ? "Various" : idr(p.amount);
+  const linkBtn = productUrl
+    ? `<button class="copy-btn" data-copy="${escapeHtml(productUrl)}" data-label="Product link"><span class="icon">⧉</span> Copy link</button>`
+    : `<button class="copy-btn" disabled><span class="icon">⧉</span> Copy link</button>`;
+  const checkoutBtn = checkoutUrl
+    ? `<button class="copy-btn" data-copy="${escapeHtml(checkoutUrl)}" data-label="Checkout link"><span class="icon">⧉</span> Copy checkout</button>`
+    : `<button class="copy-btn" disabled><span class="icon">⧉</span> Copy checkout</button>`;
+  return `
+    <div class="tx">
+      <div>
+        <div class="name">${escapeHtml(name)}</div>
+        <div class="meta">${escapeHtml(sub)}</div>
+      </div>
+      <div class="amount credit">${escapeHtml(priceLabel)}</div>
+      <div class="row2">
+        ${status}
+      </div>
+      <div class="actions-row">
+        ${linkBtn}
+        ${checkoutBtn}
+      </div>
+    </div>`;
+}
+
 function txCardUnpaid(tx) {
   const name = tx.customer?.name || tx.customer?.email || "Unknown";
   const sub = [tx.type].filter(Boolean).join(" · ");
@@ -152,13 +198,25 @@ function txCardUnpaid(tx) {
     </div>`;
 }
 
+const RENDERERS = {
+  paid: txCardPaid,
+  unpaid: txCardUnpaid,
+  products: productCard,
+};
+
+const EMPTY_LABEL = {
+  paid: "No paid transactions.",
+  unpaid: "No unpaid transactions.",
+  products: "No products found.",
+};
+
 function renderTransactions(payload) {
   const list = $("txList");
   const items = (payload && payload.data) || [];
   if (!items.length) {
-    list.innerHTML = `<div class="empty">No ${state.tab} transactions.</div>`;
+    list.innerHTML = `<div class="empty">${EMPTY_LABEL[state.tab] || "No items."}</div>`;
   } else {
-    const render = state.tab === "paid" ? txCardPaid : txCardUnpaid;
+    const render = RENDERERS[state.tab] || txCardPaid;
     list.innerHTML = items.map(render).join("");
   }
   state.hasMore = !!payload?.hasMore;
@@ -179,14 +237,18 @@ async function loadBalance() {
   }
 }
 
+const PATHS = {
+  paid: (page, size) => `/hl/v1/transactions?page=${page}&pageSize=${size}`,
+  unpaid: (page, size) => `/hl/v1/transactions/unpaid?page=${page}&pageSize=${size}`,
+  products: (page, size) => `/hl/v1/product?page=${page}&pageSize=${size}`,
+};
+
 async function loadTransactions() {
   renderSkeletons();
   setStatus("Loading…");
   try {
-    const path =
-      state.tab === "paid"
-        ? `/hl/v1/transactions?page=${state.page}&pageSize=${state.pageSize}`
-        : `/hl/v1/transactions/unpaid?page=${state.page}&pageSize=${state.pageSize}`;
+    const buildPath = PATHS[state.tab] || PATHS.paid;
+    const path = buildPath(state.page, state.pageSize);
     const r = await api(path);
     renderTransactions(r);
     setStatus("");
@@ -209,11 +271,39 @@ async function refreshAll() {
   await Promise.all([loadBalance(), loadTransactions()]);
 }
 
+let toastTimer = null;
+function showToast(msg) {
+  const el = $("copyToast");
+  el.textContent = msg;
+  el.classList.remove("hidden");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.add("hidden"), 1400);
+}
+
+async function handleCopyClick(btn) {
+  const value = btn.dataset.copy;
+  const label = btn.dataset.label || "Link";
+  if (!value) return;
+  try {
+    await navigator.clipboard.writeText(value);
+    btn.classList.add("copied");
+    setTimeout(() => btn.classList.remove("copied"), 1200);
+    showToast(`${label} copied`);
+  } catch (e) {
+    setStatus(`Copy failed: ${e.message}`, true);
+  }
+}
+
 function bindEvents() {
   $("settingsBtn").addEventListener("click", () => toggleSettings($("settingsPanel").classList.contains("hidden")));
   $("cancelSettingsBtn").addEventListener("click", () => toggleSettings(false));
   $("saveSettingsBtn").addEventListener("click", saveSettings);
   $("refreshBtn").addEventListener("click", refreshAll);
+
+  $("txList").addEventListener("click", (e) => {
+    const btn = e.target.closest(".copy-btn");
+    if (btn && !btn.disabled) handleCopyClick(btn);
+  });
 
   document.querySelectorAll(".tab").forEach((btn) => {
     btn.addEventListener("click", () => {
