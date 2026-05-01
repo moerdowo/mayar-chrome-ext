@@ -151,6 +151,24 @@ code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; }
 .muted { color: var(--muted); font-size: 11px; }
 .strong { font-weight: 600; margin-top: 2px; }
 
+.search-bar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.search-bar input {
+  flex: 1;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font: inherit;
+  outline: none;
+}
+.search-bar input:focus { border-color: var(--accent); }
+.search-bar input::-webkit-search-cancel-button { display: none; }
+
 .tabs { display: flex; gap: 6px; }
 .tab {
   flex: 1;

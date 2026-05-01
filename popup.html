@@ -69,6 +69,11 @@
         <button class="tab" data-tab="products" role="tab">Products</button>
       </nav>
 
+      <div id="searchBar" class="search-bar hidden">
+        <input id="searchInput" type="search" placeholder="Search products by name…" autocomplete="off" />
+        <button id="searchClearBtn" class="icon-btn" title="Clear" aria-label="Clear search">×</button>
+      </div>
+
       <section id="txList" class="list" aria-live="polite"></section>
 
       <div id="copyToast" class="toast hidden" role="status" aria-live="polite"></div>

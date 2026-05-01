@@ -10,6 +10,7 @@ const state = {
   pageCount: null,
   items: [],
   detail: null,
+  productSearch: "",
 };
 
 function applyTheme(theme) {
@@ -243,7 +244,11 @@ async function loadBalance() {
 const PATHS = {
   paid: (page, size) => `/hl/v1/transactions?page=${page}&pageSize=${size}`,
   unpaid: (page, size) => `/hl/v1/transactions/unpaid?page=${page}&pageSize=${size}`,
-  products: (page, size) => `/hl/v1/product?page=${page}&pageSize=${size}`,
+  products: (page, size) => {
+    const q = state.productSearch.trim();
+    const base = `/hl/v1/product?page=${page}&pageSize=${size}`;
+    return q ? `${base}&search=${encodeURIComponent(q)}` : base;
+  },
 };
 
 async function loadTransactions() {
@@ -436,8 +441,41 @@ function bindEvents() {
       state.tab = next;
       state.page = 1;
       if (state.detail) hideDetail();
+      updateSearchBar();
       loadTransactions();
     });
+  });
+
+  let searchTimer = null;
+  $("searchInput").addEventListener("input", (e) => {
+    const value = e.target.value;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      if (value === state.productSearch) return;
+      state.productSearch = value;
+      state.page = 1;
+      loadTransactions();
+    }, 350);
+  });
+  $("searchInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      clearTimeout(searchTimer);
+      const value = e.target.value;
+      if (value === state.productSearch) return;
+      state.productSearch = value;
+      state.page = 1;
+      loadTransactions();
+    } else if (e.key === "Escape") {
+      e.target.value = "";
+      $("searchClearBtn").click();
+    }
+  });
+  $("searchClearBtn").addEventListener("click", () => {
+    $("searchInput").value = "";
+    if (state.productSearch === "") return;
+    state.productSearch = "";
+    state.page = 1;
+    loadTransactions();
   });
 
   $("prevBtn").addEventListener("click", () => {
@@ -452,8 +490,18 @@ function bindEvents() {
   });
 }
 
+function updateSearchBar() {
+  const bar = $("searchBar");
+  if (state.tab === "products") {
+    bar.classList.remove("hidden");
+  } else {
+    bar.classList.add("hidden");
+  }
+}
+
 (async function init() {
   bindEvents();
   await loadSettings();
+  updateSearchBar();
   refreshAll();
 })();
