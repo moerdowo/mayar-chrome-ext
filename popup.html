@@ -29,6 +29,13 @@
             lalu salin dan tempel ke kolom di atas.
           </small>
         </label>
+        <label class="field">
+          <span>Theme</span>
+          <select id="themeSelect">
+            <option value="dark">Dark (default)</option>
+            <option value="light">Light</option>
+          </select>
+        </label>
         <div class="row gap">
           <button id="saveSettingsBtn" class="primary">Save</button>
           <button id="cancelSettingsBtn">Cancel</button>
@@ -54,9 +61,12 @@
       <nav class="tabs" role="tablist">
         <button class="tab active" data-tab="paid" role="tab">Paid</button>
         <button class="tab" data-tab="unpaid" role="tab">Unpaid</button>
+        <button class="tab" data-tab="products" role="tab">Products</button>
       </nav>
 
       <section id="txList" class="list" aria-live="polite"></section>
+
+      <div id="copyToast" class="toast hidden" role="status" aria-live="polite"></div>
 
       <div class="pager">
         <button id="prevBtn" disabled>‹ Prev</button>
