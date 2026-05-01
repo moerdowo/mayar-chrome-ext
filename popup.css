@@ -151,6 +151,24 @@ code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; }
 .muted { color: var(--muted); font-size: 11px; }
 .strong { font-weight: 600; margin-top: 2px; }
 
+.search-bar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.search-bar input {
+  flex: 1;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font: inherit;
+  outline: none;
+}
+.search-bar input:focus { border-color: var(--accent); }
+.search-bar input::-webkit-search-cancel-button { display: none; }
+
 .tabs { display: flex; gap: 6px; }
 .tab {
   flex: 1;
@@ -206,6 +224,57 @@ code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; }
 .status.error { color: var(--danger); }
 
 .empty { color: var(--muted); text-align: center; padding: 16px 8px; }
+
+.tx.clickable { cursor: pointer; transition: border-color .15s, background .15s; }
+.tx.clickable:hover { border-color: var(--accent); background: var(--accent-soft); }
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.back-btn {
+  align-self: flex-start;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.back-btn:hover { border-color: var(--accent); }
+.detail-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+}
+.detail-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+.detail-amount {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 6px 0 10px;
+}
+.detail-amount.credit { color: var(--accent-2); }
+.detail-amount.unpaid { color: var(--warn); }
+.kv {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 6px 10px;
+  font-size: 12px;
+}
+.kv .k { color: var(--muted); }
+.kv .v { color: var(--text); word-break: break-word; }
+.kv .v.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+.kv .v a { color: var(--accent); text-decoration: none; word-break: break-all; }
+.kv .v a:hover { text-decoration: underline; }
+.kv .v .copy-btn { margin-top: 4px; }
 
 .tx .actions-row {
   grid-column: 1 / -1;

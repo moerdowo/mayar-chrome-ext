@@ -43,6 +43,11 @@
         <p class="hint">Stored locally in <code>chrome.storage.local</code> on this device only.</p>
       </section>
 
+      <section id="detailView" class="detail hidden">
+        <button id="detailBackBtn" class="back-btn">← Back</button>
+        <div id="detailBody"></div>
+      </section>
+
       <section id="balanceCard" class="card balance">
         <div class="balance-label">Total Balance</div>
         <div id="balanceTotal" class="balance-total">—</div>
@@ -63,6 +68,11 @@
         <button class="tab" data-tab="unpaid" role="tab">Unpaid</button>
         <button class="tab" data-tab="products" role="tab">Products</button>
       </nav>
+
+      <div id="searchBar" class="search-bar hidden">
+        <input id="searchInput" type="search" placeholder="Search products by name…" autocomplete="off" />
+        <button id="searchClearBtn" class="icon-btn" title="Clear" aria-label="Clear search">×</button>
+      </div>
 
       <section id="txList" class="list" aria-live="polite"></section>
 
